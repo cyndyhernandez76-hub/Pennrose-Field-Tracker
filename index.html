@@ -1572,11 +1572,11 @@ function sendToSheets() {
   var btn = gEl('sheetsSendBtn');
   if (btn) { btn.textContent = '📤 Enviando...'; btn.disabled = true; }
 
-  // sendBeacon — fires POST cross-origin without CORS preflight, no redirect issues
-  // GAS receives body via e.postData.contents
-  var blob = new Blob([JSON.stringify(payload)], {type: 'text/plain'});
-  var sent = navigator.sendBeacon(SHEETS_URL, blob);
-  if (sent) {
+  // Use an image request to send data — works on all browsers and devices
+  // without CORS issues. GAS reads via e.parameter.payload in doGet.
+  var encoded = encodeURIComponent(JSON.stringify(payload));
+  var img = new Image();
+  img.onload = img.onerror = function() {
     toast('✅ ' + workers.length + ' trabajadores enviados a Payroll Field Master');
     if (btn) {
       btn.textContent = '✅ Enviado';
@@ -1587,10 +1587,8 @@ function sendToSheets() {
         btn.style.background = '#1a3a5c';
       }, 5000);
     }
-  } else {
-    toast('❌ No se pudo enviar — verifica tu internet');
-    if (btn) { btn.textContent = '📊 Enviar a Payroll Field Master'; btn.style.background = '#1a3a5c'; btn.disabled = false; }
-  }
+  };
+  img.src = SHEETS_URL + '?payload=' + encoded;
 }
 
 // ── GROUP ACTIVITY SYSTEM ──
