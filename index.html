@@ -459,6 +459,7 @@ var ACTS = [
   {es:"Empaque calabaza amarilla x hora",en:"Yellow squash packing/hr",tipo:"Hora", p:16.23,hr:true},
   {es:"Empaque calabaza verde x hora",  en:"Green squash packing/hr",  tipo:"Hora", p:16.23,hr:true},
   {es:"Empaque chile morron x hora",    en:"Bell pepper packing/hr",   tipo:"Hora", p:16.23,hr:true},
+  {es:"Empaque de berenjena x hora",    en:"Eggplant packing/hr",       tipo:"Hora", p:16.23,hr:true},
   {es:"Empaque de calabaza amarilla",   en:"Yellow squash packing",    tipo:"Caja", p:0.80, hr:false},
   {es:"Empaque de calabaza verde",      en:"Green squash packing",     tipo:"Caja", p:0.80, hr:false},
   {es:"Empaque de chile morron",        en:"Bell pepper packing",      tipo:"Caja", p:0.80, hr:false},
@@ -1572,23 +1573,38 @@ function sendToSheets() {
   var btn = gEl('sheetsSendBtn');
   if (btn) { btn.textContent = '📤 Enviando...'; btn.disabled = true; }
 
-  // Use an image request to send data — works on all browsers and devices
-  // without CORS issues. GAS reads via e.parameter.payload in doGet.
-  var encoded = encodeURIComponent(JSON.stringify(payload));
-  var img = new Image();
-  img.onload = img.onerror = function() {
-    toast('✅ ' + workers.length + ' trabajadores enviados a Payroll Field Master');
-    if (btn) {
-      btn.textContent = '✅ Enviado';
-      btn.style.background = '#1a7a4a';
-      btn.disabled = false;
-      setTimeout(function() {
-        btn.textContent = '📊 Enviar a Payroll Field Master';
-        btn.style.background = '#1a3a5c';
-      }, 5000);
+  // Plain fetch POST with no Content-Type = text/plain simple request
+  // No CORS preflight, GAS reads via e.postData.contents
+  fetch(SHEETS_URL, {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  })
+  .then(function(r){ return r.text(); })
+  .then(function(txt){
+    try {
+      var res = JSON.parse(txt);
+      if (res.success) {
+        toast('✅ ' + workers.length + ' trabajadores enviados a Payroll Field Master');
+        if (btn) {
+          btn.textContent = '✅ Enviado';
+          btn.style.background = '#2d7a2d';
+          btn.disabled = false;
+          setTimeout(function() { btn.textContent = '📊 Enviar a Payroll Field Master'; btn.style.background = '#1a3a5c'; }, 5000);
+        }
+      } else {
+        toast('❌ Error: ' + (res.error || 'desconocido'));
+        if (btn) { btn.textContent = '📊 Enviar a Payroll Field Master'; btn.style.background = '#1a3a5c'; btn.disabled = false; }
+      }
+    } catch(e) {
+      toast('✅ ' + workers.length + ' trabajadores enviados a Payroll Field Master');
+      if (btn) { btn.textContent = '✅ Enviado'; btn.style.background = '#2d7a2d'; btn.disabled = false;
+        setTimeout(function() { btn.textContent = '📊 Enviar a Payroll Field Master'; btn.style.background = '#1a3a5c'; }, 5000); }
     }
-  };
-  img.src = SHEETS_URL + '?payload=' + encoded;
+  })
+  .catch(function(err) {
+    toast('❌ Error: ' + (err.message || 'Sin conexión'));
+    if (btn) { btn.textContent = '📊 Enviar a Payroll Field Master'; btn.style.background = '#1a3a5c'; btn.disabled = false; }
+  });
 }
 
 // ── GROUP ACTIVITY SYSTEM ──
